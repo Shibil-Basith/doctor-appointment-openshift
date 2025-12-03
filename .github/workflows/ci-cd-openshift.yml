@@ -1,0 +1,125 @@
+name: Build, Scan, Push & Deploy to OpenShift
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write   # needed for GHCR
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: ${{ github.repository_owner }}
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/doctor-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/doctor-frontend
+  ADMIN_IMAGE: ghcr.io/${{ github.repository_owner }}/doctor-admin
+
+jobs:
+  build-scan-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU and Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to GHCR
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    # -------- BACKEND --------
+    - name: Build & push backend image
+      id: backend
+      run: |
+        IMAGE=${BACKEND_IMAGE}:${GITHUB_SHA}
+        docker build -t $IMAGE ./backend
+        docker push $IMAGE
+        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+    - name: Trivy scan backend
+      uses: aquasecurity/trivy-action@v2
+      with:
+        image-ref: ${{ steps.backend.outputs.image }}
+        format: 'table'
+        ignore-unfixed: true
+        exit-code: '1'   # fail on HIGH/CRITICAL; change to 0 if it's too strict
+
+    # -------- FRONTEND --------
+    - name: Build & push frontend image
+      id: frontend
+      run: |
+        IMAGE=${FRONTEND_IMAGE}:${GITHUB_SHA}
+        docker build -t $IMAGE ./frontend
+        docker push $IMAGE
+        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+    - name: Trivy scan frontend
+      uses: aquasecurity/trivy-action@v2
+      with:
+        image-ref: ${{ steps.frontend.outputs.image }}
+        format: 'table'
+        ignore-unfixed: true
+        exit-code: '1'
+
+    # -------- ADMIN --------
+    - name: Build & push admin image
+      id: admin
+      run: |
+        IMAGE=${ADMIN_IMAGE}:${GITHUB_SHA}
+        docker build -t $IMAGE ./admin
+        docker push $IMAGE
+        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+    - name: Trivy scan admin
+      uses: aquasecurity/trivy-action@v2
+      with:
+        image-ref: ${{ steps.admin.outputs.image }}
+        format: 'table'
+        ignore-unfixed: true
+        exit-code: '1'
+
+  deploy:
+    needs: build-scan-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install oc CLI
+      run: |
+        curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
+        tar -xzf oc.tar.gz
+        sudo mv oc /usr/local/bin/ || true
+
+    - name: Login to OpenShift
+      env:
+        OC_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
+        OC_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+      run: |
+        oc login $OC_SERVER --token=$OC_TOKEN --insecure-skip-tls-verify
+        oc project ${{ secrets.OPENSHIFT_PROJECT }}
+
+    - name: Update manifests with image tags and apply
+      env:
+        BACKEND_IMG: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+        FRONTEND_IMG: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+        ADMIN_IMG: ${{ env.ADMIN_IMAGE }}:${{ github.sha }}
+      run: |
+        # Replace placeholders in YAML
+        sed -i "s|ghcr.io/REPLACE_OWNER/doctor-backend:REPLACE_TAG|${BACKEND_IMG}|g" k8s/backend-deployment.yaml
+        sed -i "s|ghcr.io/REPLACE_OWNER/doctor-frontend:REPLACE_TAG|${FRONTEND_IMG}|g" k8s/frontend-deployment.yaml
+        sed -i "s|ghcr.io/REPLACE_OWNER/doctor-admin:REPLACE_TAG|${ADMIN_IMG}|g" k8s/admin-deployment.yaml
+
+        oc apply -f k8s/backend-deployment.yaml
+        oc apply -f k8s/frontend-deployment.yaml
+        oc apply -f k8s/admin-deployment.yaml
+        oc apply -f k8s/hpa-backend.yaml
+
+    - name: Ensure deployment images updated
+      env:
+        BACKEND_IMG: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+        FRONTEND_IMG: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+        ADMIN_IMG: ${{ env.ADMIN_IMAGE }}:${{ github.sha }}
+      run: |
+        oc set image deployment/doctor-backend backend=${BACKEND_IMG} --record || true
+        oc set image deployment/doctor-frontend frontend=${FRONTEND_IMG} --record || true
+        oc set image deployment/doctor-admin admin=${ADMIN_IMG} --record || true

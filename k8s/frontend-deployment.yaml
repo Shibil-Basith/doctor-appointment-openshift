@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doctor-frontend
+  labels:
+    app: doctor-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: doctor-frontend
+  template:
+    metadata:
+      labels:
+        app: doctor-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: REPLACE_REGISTRY/doctor-frontend:REPLACE_TAG
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctor-frontend-svc
+spec:
+  selector:
+    app: doctor-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: doctor-frontend-route
+spec:
+  to:
+    kind: Service
+    name: doctor-frontend-svc
+  port:
+    targetPort: 80

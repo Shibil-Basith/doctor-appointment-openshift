@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doctor-admin
+  labels:
+    app: doctor-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: doctor-admin
+  template:
+    metadata:
+      labels:
+        app: doctor-admin
+    spec:
+      containers:
+      - name: admin
+        image: REPLACE_REGISTRY/doctor-admin:REPLACE_TAG
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctor-admin-svc
+spec:
+  selector:
+    app: doctor-admin
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: doctor-admin-route
+spec:
+  to:
+    kind: Service
+    name: doctor-admin-svc
+  port:
+    targetPort: 80
