@@ -11,10 +11,11 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_OWNER: ${{ github.repository_owner }}
-  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/doctor-backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/doctor-frontend
-  ADMIN_IMAGE: ghcr.io/${{ github.repository_owner }}/doctor-admin
+  IMAGE_OWNER: shibil-basith
+  BACKEND_IMAGE: ghcr.io/shibil-basith/doctor-backend
+  FRONTEND_IMAGE: ghcr.io/shibil-basith/doctor-frontend
+  ADMIN_IMAGE: ghcr.io/shibil-basith/doctor-admin
+
 
 jobs:
   build-scan-push:
