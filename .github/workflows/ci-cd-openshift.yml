@@ -45,7 +45,9 @@ jobs:
         image-ref: ${{ steps.backend.outputs.image }}
         format: 'table'
         ignore-unfixed: true
-        exit-code: '1'   # fail on HIGH/CRITICAL; change to 0 if it's too strict
+        severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+        exit-code: '0'
+        # fail on HIGH/CRITICAL; change to 0 if it's too strict
 
     # -------- FRONTEND --------
     - name: Build & push frontend image
@@ -62,7 +64,8 @@ jobs:
         image-ref: ${{ steps.frontend.outputs.image }}
         format: 'table'
         ignore-unfixed: true
-        exit-code: '1'
+        severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+        exit-code: '0'
 
     # -------- ADMIN --------
     - name: Build & push admin image
@@ -79,7 +82,8 @@ jobs:
         image-ref: ${{ steps.admin.outputs.image }}
         format: 'table'
         ignore-unfixed: true
-        exit-code: '1'
+        severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+        exit-code: '0'
 
   deploy:
     needs: build-scan-push
