@@ -89,7 +89,10 @@ jobs:
     needs: build-scan-push
     runs-on: ubuntu-latest
     steps:
-    - name: Install oc CLI
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install oc
       run: |
         curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
         tar -xzf oc.tar.gz
@@ -103,6 +106,13 @@ jobs:
         oc login $OC_SERVER --token=$OC_TOKEN --insecure-skip-tls-verify
         oc project ${{ secrets.OPENSHIFT_PROJECT }}
 
+    - name: Debug – list files
+      run: |
+        pwd
+        ls
+        echo "Listing k8s directory:"
+        ls k8s || echo "k8s directory not found"
+
     - name: Update manifests and apply
       env:
         BACKEND_IMG: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
@@ -114,8 +124,7 @@ jobs:
         oc apply -f k8s/admin-deployment.yaml
         oc apply -f k8s/hpa-backend.yaml
 
-
-    - name: Ensure deployment images updated
+    - name: Set images explicitly (safe update)
       env:
         BACKEND_IMG: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
         FRONTEND_IMG: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
@@ -124,3 +133,5 @@ jobs:
         oc set image deployment/doctor-backend backend=${BACKEND_IMG} --record || true
         oc set image deployment/doctor-frontend frontend=${FRONTEND_IMG} --record || true
         oc set image deployment/doctor-admin admin=${ADMIN_IMG} --record || true
+
+   
