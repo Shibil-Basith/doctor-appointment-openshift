@@ -46,3 +46,17 @@ spec:
     port: 80
     targetPort: 4000
     protocol: TCP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: doctor-backend-route
+spec:
+  to:
+    kind: Service
+    name: doctor-backend-svc
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
