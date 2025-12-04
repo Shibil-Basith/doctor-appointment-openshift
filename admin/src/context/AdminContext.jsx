@@ -1,5 +1,6 @@
 import { createContext, useState } from "react";
-import axios from 'axios'
+import API from "../api/axios";
+
 import { toast } from 'react-toastify'
 
 export const AdminContext = createContext()
@@ -17,7 +18,7 @@ const AdminContextProvider = (props) => {
 
     try {
 
-      const { data } = await axios.post(backendUrl + '/api/admin/all-doctors', {}, { headers: { aToken } })
+      const { data } = await API.post(backendUrl + '/api/admin/all-doctors', {}, { headers: { aToken } })
       if (data.success) {
         setDoctors(data.doctors)
         console.log(data.doctors)
@@ -34,7 +35,7 @@ const AdminContextProvider = (props) => {
 
     try {
 
-      const { data } = await axios.post(backendUrl + '/api/admin/change-availability', { docId }, { headers: { aToken } })
+      const { data } = await API.post(backendUrl + '/api/admin/change-availability', { docId }, { headers: { aToken } })
       if (data.success) {
         toast.success(data.message)
         getAllDoctors()
@@ -52,7 +53,7 @@ const AdminContextProvider = (props) => {
 
     try {
 
-      const { data } = await axios.get(backendUrl, '/api/admin/appointments', { headers: { aToken } })
+      const { data } = await API.get(backendUrl, '/api/admin/appointments', { headers: { aToken } })
 
       if (data.success) {
         setAppointments(data.appointments)
@@ -71,7 +72,7 @@ const AdminContextProvider = (props) => {
 
     try {
 
-      const { data } = await axios.post(backendUrl + '/api/admin/cancel-appointment', { appointmentId }, { headers: { aToken } })
+      const { data } = await API.post(backendUrl + '/api/admin/cancel-appointment', { appointmentId }, { headers: { aToken } })
 
       if (data.success) {
         toast.success(data.message)
@@ -90,7 +91,7 @@ const AdminContextProvider = (props) => {
 
     try {
 
-      const { data } = await axios.get(backendUrl + '/api/admin/dashboard', { headers: { aToken } })
+      const { data } = await API.get(backendUrl + '/api/admin/dashboard', { headers: { aToken } })
 
       if (data.success) {
         setDashData(data.dashData)

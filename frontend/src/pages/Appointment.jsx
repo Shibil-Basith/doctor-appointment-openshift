@@ -4,7 +4,7 @@ import { AppContext } from '../context/AppContext'
 import { assets } from '../assets/assets_frontend/assets'
 import RelatedDoctor from '../components/RelatedDoctor'
 import { toast } from 'react-toastify'
-import axios from 'axios'
+
 
 const Appointment = () => {
 
@@ -93,7 +93,7 @@ const Appointment = () => {
 
       const slotDate = day + '_' + month + '_' + year
 
-      const { data } = await axios.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime }, { headers: { token } })
+      const { data } = await API.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime }, { headers: { token } })
 
       if (data.success) {
         toast.success(data.message)
