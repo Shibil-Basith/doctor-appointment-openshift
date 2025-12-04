@@ -34,10 +34,14 @@ jobs:
     - name: Build & push backend image
       id: backend
       run: |
-        IMAGE=${BACKEND_IMAGE}:${GITHUB_SHA}
-        docker build -t $IMAGE ./backend
-        docker push $IMAGE
-        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+        IMAGE_SHA=${BACKEND_IMAGE}:${GITHUB_SHA}
+        IMAGE_LATEST=${BACKEND_IMAGE}:latest
+        docker build -t $IMAGE_SHA ./backend
+        docker push $IMAGE_SHA
+        docker tag $IMAGE_SHA $IMAGE_LATEST
+        docker push $IMAGE_LATEST
+        echo "image=$IMAGE_SHA" >> $GITHUB_OUTPUT
+
 
     - name: Trivy scan backend
       uses: aquasecurity/trivy-action@0.33.1
@@ -53,10 +57,14 @@ jobs:
     - name: Build & push frontend image
       id: frontend
       run: |
-        IMAGE=${FRONTEND_IMAGE}:${GITHUB_SHA}
-        docker build -t $IMAGE ./frontend
-        docker push $IMAGE
-        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+        IMAGE_SHA=${FRONTEND_IMAGE}:${GITHUB_SHA}
+        IMAGE_LATEST=${FRONTEND_IMAGE}:latest
+        docker build -t $IMAGE_SHA ./frontend
+        docker push $IMAGE_SHA
+        docker tag $IMAGE_SHA $IMAGE_LATEST
+        docker push $IMAGE_LATEST
+        echo "image=$IMAGE_SHA" >> $GITHUB_OUTPUT
+
 
     - name: Trivy scan frontend
       uses: aquasecurity/trivy-action@0.33.1
@@ -71,10 +79,14 @@ jobs:
     - name: Build & push admin image
       id: admin
       run: |
-        IMAGE=${ADMIN_IMAGE}:${GITHUB_SHA}
-        docker build -t $IMAGE ./admin
-        docker push $IMAGE
-        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+        IMAGE_SHA=${ADMIN_IMAGE}:${GITHUB_SHA}
+        IMAGE_LATEST=${ADMIN_IMAGE}:latest
+        docker build -t $IMAGE_SHA ./admin
+        docker push $IMAGE_SHA
+        docker tag $IMAGE_SHA $IMAGE_LATEST
+        docker push $IMAGE_LATEST
+        echo "image=$IMAGE_SHA" >> $GITHUB_OUTPUT
+
 
     - name: Trivy scan admin
       uses: aquasecurity/trivy-action@0.33.1
@@ -124,14 +136,5 @@ jobs:
         oc apply -f k8s/admin-deployment.yaml
         oc apply -f k8s/hpa-backend.yaml
 
-    - name: Set images explicitly (safe update)
-      env:
-        BACKEND_IMG: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-        FRONTEND_IMG: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-        ADMIN_IMG: ${{ env.ADMIN_IMAGE }}:${{ github.sha }}
-      run: |
-        oc set image deployment/doctor-backend backend=${BACKEND_IMG} --record || true
-        oc set image deployment/doctor-frontend frontend=${FRONTEND_IMG} --record || true
-        oc set image deployment/doctor-admin admin=${ADMIN_IMG} --record || true
-
+    
    
