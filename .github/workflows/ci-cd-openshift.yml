@@ -103,21 +103,17 @@ jobs:
         oc login $OC_SERVER --token=$OC_TOKEN --insecure-skip-tls-verify
         oc project ${{ secrets.OPENSHIFT_PROJECT }}
 
-    - name: Update manifests with image tags and apply
+    - name: Update manifests and apply
       env:
         BACKEND_IMG: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
         FRONTEND_IMG: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
         ADMIN_IMG: ${{ env.ADMIN_IMAGE }}:${{ github.sha }}
       run: |
-        # Replace placeholders in YAML
-        sed -i "s|ghcr.io/REPLACE_OWNER/doctor-backend:REPLACE_TAG|${BACKEND_IMG}|g" k8s/backend-deployment.yaml
-        sed -i "s|ghcr.io/REPLACE_OWNER/doctor-frontend:REPLACE_TAG|${FRONTEND_IMG}|g" k8s/frontend-deployment.yaml
-        sed -i "s|ghcr.io/REPLACE_OWNER/doctor-admin:REPLACE_TAG|${ADMIN_IMG}|g" k8s/admin-deployment.yaml
-
         oc apply -f k8s/backend-deployment.yaml
         oc apply -f k8s/frontend-deployment.yaml
         oc apply -f k8s/admin-deployment.yaml
         oc apply -f k8s/hpa-backend.yaml
+
 
     - name: Ensure deployment images updated
       env:
