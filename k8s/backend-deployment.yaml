@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: ghcr.io/shibil-basith/doctor-backend:latest  # will be overridden by oc set image
+        image: ghcr.io/shibil-basith/doctor-backend:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 4000

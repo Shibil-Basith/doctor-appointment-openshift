@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: REPLACE_REGISTRY/doctor-frontend:REPLACE_TAG
+        image: ghcr.io/shibil-basith/doctor-frontend:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
@@ -31,6 +31,7 @@ spec:
   ports:
   - port: 80
     targetPort: 80
+    protocol: TCP
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
