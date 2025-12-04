@@ -17,7 +17,7 @@ spec:
       containers:
       - name: admin
         image: ghcr.io/shibil-basith/doctor-admin:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
 ---
