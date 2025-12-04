@@ -7,6 +7,13 @@ COPY . .
 RUN npm run build
 
 FROM nginx:stable-alpine
+
+# Copy built files
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# 🔑 OpenShift-friendly: allow random UID to write to nginx cache dirs
+RUN mkdir -p /var/cache/nginx/client_temp \
+    && chmod -R 777 /var/cache/nginx
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
