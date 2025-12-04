@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doctor-backend
+  labels:
+    app: doctor-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: doctor-backend
+  template:
+    metadata:
+      labels:
+        app: doctor-backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/shibil-basith/doctor-backend:latest  # will be overridden by oc set image
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 4000
+        env:
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: doctor-secrets
+              key: mongodb_uri
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctor-backend-svc
+spec:
+  selector:
+    app: doctor-backend
+  ports:
+  - port: 80
+    targetPort: 4000
+    protocol: TCP
