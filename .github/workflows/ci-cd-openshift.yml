@@ -2,11 +2,11 @@ name: Build, Scan, Push & Deploy to OpenShift
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
 
 permissions:
   contents: read
-  packages: write   # needed for GHCR
+  packages: write
   id-token: write
 
 env:
@@ -16,12 +16,11 @@ env:
   FRONTEND_IMAGE: ghcr.io/shibil-basith/doctor-frontend
   ADMIN_IMAGE: ghcr.io/shibil-basith/doctor-admin
 
-
 jobs:
   build-scan-push:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repo
+    - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set up QEMU and Buildx
@@ -34,14 +33,10 @@ jobs:
     - name: Build & push backend image
       id: backend
       run: |
-        IMAGE_SHA=${BACKEND_IMAGE}:${GITHUB_SHA}
         IMAGE_LATEST=${BACKEND_IMAGE}:latest
-        docker build -t $IMAGE_SHA ./backend
-        docker push $IMAGE_SHA
-        docker tag $IMAGE_SHA $IMAGE_LATEST
+        docker build -t $IMAGE_LATEST ./backend
         docker push $IMAGE_LATEST
-        echo "image=$IMAGE_SHA" >> $GITHUB_OUTPUT
-
+        echo "image=$IMAGE_LATEST" >> $GITHUB_OUTPUT
 
     - name: Trivy scan backend
       uses: aquasecurity/trivy-action@0.33.1
@@ -49,22 +44,16 @@ jobs:
         image-ref: ${{ steps.backend.outputs.image }}
         format: 'table'
         ignore-unfixed: true
-        severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
-        exit-code: '0'
-        # fail on HIGH/CRITICAL; change to 0 if it's too strict
+        exit-code: '0'  # log only, don't fail pipeline
 
     # -------- FRONTEND --------
     - name: Build & push frontend image
       id: frontend
       run: |
-        IMAGE_SHA=${FRONTEND_IMAGE}:${GITHUB_SHA}
         IMAGE_LATEST=${FRONTEND_IMAGE}:latest
-        docker build -t $IMAGE_SHA ./frontend
-        docker push $IMAGE_SHA
-        docker tag $IMAGE_SHA $IMAGE_LATEST
+        docker build -t $IMAGE_LATEST ./frontend
         docker push $IMAGE_LATEST
-        echo "image=$IMAGE_SHA" >> $GITHUB_OUTPUT
-
+        echo "image=$IMAGE_LATEST" >> $GITHUB_OUTPUT
 
     - name: Trivy scan frontend
       uses: aquasecurity/trivy-action@0.33.1
@@ -72,21 +61,16 @@ jobs:
         image-ref: ${{ steps.frontend.outputs.image }}
         format: 'table'
         ignore-unfixed: true
-        severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
         exit-code: '0'
 
     # -------- ADMIN --------
     - name: Build & push admin image
       id: admin
       run: |
-        IMAGE_SHA=${ADMIN_IMAGE}:${GITHUB_SHA}
         IMAGE_LATEST=${ADMIN_IMAGE}:latest
-        docker build -t $IMAGE_SHA ./admin
-        docker push $IMAGE_SHA
-        docker tag $IMAGE_SHA $IMAGE_LATEST
+        docker build -t $IMAGE_LATEST ./admin
         docker push $IMAGE_LATEST
-        echo "image=$IMAGE_SHA" >> $GITHUB_OUTPUT
-
+        echo "image=$IMAGE_LATEST" >> $GITHUB_OUTPUT
 
     - name: Trivy scan admin
       uses: aquasecurity/trivy-action@0.33.1
@@ -94,7 +78,6 @@ jobs:
         image-ref: ${{ steps.admin.outputs.image }}
         format: 'table'
         ignore-unfixed: true
-        severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
         exit-code: '0'
 
   deploy:
@@ -104,7 +87,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install oc
+    - name: Install oc CLI
       run: |
         curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
         tar -xzf oc.tar.gz
@@ -118,23 +101,9 @@ jobs:
         oc login $OC_SERVER --token=$OC_TOKEN --insecure-skip-tls-verify
         oc project ${{ secrets.OPENSHIFT_PROJECT }}
 
-    - name: Debug – list files
-      run: |
-        pwd
-        ls
-        echo "Listing k8s directory:"
-        ls k8s || echo "k8s directory not found"
-
-    - name: Update manifests and apply
-      env:
-        BACKEND_IMG: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-        FRONTEND_IMG: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-        ADMIN_IMG: ${{ env.ADMIN_IMAGE }}:${{ github.sha }}
+    - name: Apply Kubernetes manifests
       run: |
         oc apply -f k8s/backend-deployment.yaml
         oc apply -f k8s/frontend-deployment.yaml
         oc apply -f k8s/admin-deployment.yaml
         oc apply -f k8s/hpa-backend.yaml
-
-    
-   

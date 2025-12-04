@@ -42,6 +42,7 @@ spec:
   selector:
     app: doctor-backend
   ports:
-  - port: 80
+  - name: http
+    port: 80
     targetPort: 4000
     protocol: TCP

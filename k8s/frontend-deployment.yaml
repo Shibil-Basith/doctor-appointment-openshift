@@ -19,7 +19,7 @@ spec:
         image: ghcr.io/shibil-basith/doctor-frontend:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080   # changed from 80
+        - containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
@@ -29,8 +29,9 @@ spec:
   selector:
     app: doctor-frontend
   ports:
-  - port: 80          # service port (what Route uses)
-    targetPort: 8080  # container port
+  - name: http                  # named port for route
+    port: 80                    # service port
+    targetPort: 8080            # container port
     protocol: TCP
 ---
 apiVersion: route.openshift.io/v1
@@ -42,4 +43,7 @@ spec:
     kind: Service
     name: doctor-frontend-svc
   port:
-    targetPort: 80    # service port (stay 80)
+    targetPort: http            # use named port
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
