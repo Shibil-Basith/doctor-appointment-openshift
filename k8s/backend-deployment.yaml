@@ -26,6 +26,15 @@ spec:
             secretKeyRef:
               name: doctor-secrets
               key: mongodb_uri
+              
+        - name: ADMIN_EMAIL
+          value: "admin@doctorapp.com"
+
+        - name: ADMIN_PASSWORD
+          value: "Admin123!"
+
+        - name: JWT_SECRET
+          value: "super-secret-jwt-key-123"
         resources:
           requests:
             cpu: "100m"
